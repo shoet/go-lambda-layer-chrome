@@ -1,0 +1,60 @@
+service: go-lambda-layer-chromium
+frameworkVersion: "3"
+
+provider:
+  name: aws
+  runtime: provided.al2
+  stage: dev
+  region: ap-northeast-1
+
+# you can define service wide environment variables here
+#  environment:
+#    variable1: value1
+
+package:
+  patterns:
+    - "!./**"
+    - ./bin/**
+
+custom:
+  go:
+    cmd: GOARCH=amd64 GOOS=linux go build -ldflags="-s -w"
+    supportedRuntimes: ["provided.al2"]
+    buildProvidedRuntimeAsBootstrap: true
+
+functions:
+  hello:
+    handler: functions/layer-example/main.go
+    events:
+      - httpApi:
+          path: /hello
+          method: get
+
+resources:
+  Resources:
+    GoLambda:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: GoLambda
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action: sts:AssumeRole
+        Policies:
+          - PolicyName: GoLambda
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - "logs:CreateLogGroup"
+                    - "logs:CreateLogStream"
+                    - "logs:PutLogEvents"
+                  Resource: "*"
+
+plugins:
+  - serverless-go-plugin
